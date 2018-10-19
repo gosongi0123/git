@@ -319,7 +319,7 @@ static void output_commit_title(struct merge_options *o, struct commit *commit)
 		strbuf_add_unique_abbrev(&o->obuf, &commit->object.oid,
 					 DEFAULT_ABBREV);
 		strbuf_addch(&o->obuf, ' ');
-		if (parse_commit(commit) != 0)
+		if (repo_parse_commit(the_repository, commit) != 0)
 			strbuf_addstr(&o->obuf, _("(bad commit)\n"));
 		else {
 			const char *title;
@@ -327,7 +327,7 @@ static void output_commit_title(struct merge_options *o, struct commit *commit)
 			int len = find_commit_subject(msg, &title);
 			if (len)
 				strbuf_addf(&o->obuf, "%.*s\n", len, title);
-			unuse_commit_buffer(commit, msg);
+			repo_unuse_commit_buffer(the_repository, commit, msg);
 		}
 	}
 	flush_output(o);
@@ -977,7 +977,7 @@ static int update_file_flags(struct merge_options *o,
 			goto update_index;
 		}
 
-		buf = read_object_file(oid, &type, &size);
+		buf = repo_read_object_file(the_repository, oid, &type, &size);
 		if (!buf)
 			return err(o, _("cannot read object %s '%s'"), oid_to_hex(oid), path);
 		if (type != OBJ_BLOB) {
@@ -1180,7 +1180,8 @@ static void print_commit(struct commit *commit)
 	struct strbuf sb = STRBUF_INIT;
 	struct pretty_print_context ctx = {0};
 	ctx.date_mode.type = DATE_NORMAL;
-	format_commit_message(commit, " %h: %m %s", &sb, &ctx);
+	repo_format_commit_message(the_repository, commit, " %h: %m %s", &sb,
+				   &ctx);
 	fprintf(stderr, "%s\n", sb.buf);
 	strbuf_release(&sb);
 }
@@ -2929,7 +2930,7 @@ static int read_oid_strbuf(struct merge_options *o,
 	void *buf;
 	enum object_type type;
 	unsigned long size;
-	buf = read_object_file(oid, &type, &size);
+	buf = repo_read_object_file(the_repository, oid, &type, &size);
 	if (!buf)
 		return err(o, _("cannot read object %s"), oid_to_hex(oid));
 	if (type != OBJ_BLOB) {
@@ -3511,7 +3512,7 @@ static struct commit *get_ref(const struct object_id *oid, const char *name)
 		return make_virtual_commit((struct tree*)object, name);
 	if (object->type != OBJ_COMMIT)
 		return NULL;
-	if (parse_commit((struct commit *)object))
+	if (repo_parse_commit(the_repository, (struct commit *)object))
 		return NULL;
 	return (struct commit *)object;
 }
